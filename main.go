@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"log"
 	"net/http"
 )
 
@@ -16,10 +17,14 @@ func GetPosts(w http.ResponseWriter, _ *http.Request) {
 
 func main() {
 	r := chi.NewRouter()
+
 	r.Use(middleware.Logger)
 	r.Use(middleware.Heartbeat("/health"))
+
 	r.Get("/", Index)
 	r.Get("/posts", GetPosts)
+
+	log.Println("Run server")
 	if err := http.ListenAndServe(":8080", r); err != nil {
 		panic(err)
 	}
