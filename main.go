@@ -9,25 +9,32 @@ import (
 	"net/http"
 )
 
-var posts = []*Post{
-	{Text: "first post", Created: 1},
-	{Text: "second post", Created: 2},
-}
-
 type Post struct {
 	Text    string `json:"text"`
 	Created int    `json:"created"`
+}
+
+var posts = []*Post{
+	{Text: "first post", Created: 1},
+	{Text: "second post", Created: 2},
 }
 
 type PostResponse struct {
 	*Post
 }
 
+func (rd *PostResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
+	return nil
+}
+
 type PostRequest struct {
 	*Post
 }
 
-func (rd *PostResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
+func (a *PostRequest) Bind(_ *http.Request) error {
+	if a.Post == nil {
+		return errors.New("missing required Post fields")
+	}
 	return nil
 }
 
@@ -41,13 +48,6 @@ func newPostListResponse(posts []*Post) []render.Renderer {
 		list = append(list, newPostResponse(post))
 	}
 	return list
-}
-
-func (a *PostRequest) Bind(_ *http.Request) error {
-	if a.Post == nil {
-		return errors.New("missing required Post fields")
-	}
-	return nil
 }
 
 func index(w http.ResponseWriter, _ *http.Request) {
@@ -72,27 +72,27 @@ func addPosts(w http.ResponseWriter, r *http.Request) {
 	_ = render.Render(w, r, newPostResponse(post))
 }
 
+type errResponse struct {
+	Err            error `json:"-"`
+	HTTPStatusCode int   `json:"-"`
+
+	StatusText string `json:"status"`
+	AppCode    int64  `json:"code,omitempty"`
+	ErrorText  string `json:"error,omitempty"`
+}
+
+func (e *errResponse) Render(_ http.ResponseWriter, r *http.Request) error {
+	render.Status(r, e.HTTPStatusCode)
+	return nil
+}
+
 func ErrInvalidRequest(err error) render.Renderer {
-	return &ErrResponse{
+	return &errResponse{
 		Err:            err,
 		HTTPStatusCode: 400,
 		StatusText:     "Invalid request.",
 		ErrorText:      err.Error(),
 	}
-}
-
-type ErrResponse struct {
-	Err            error `json:"-"` // low-level runtime error
-	HTTPStatusCode int   `json:"-"` // http response status code
-
-	StatusText string `json:"status"`          // user-level status message
-	AppCode    int64  `json:"code,omitempty"`  // application-specific error code
-	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
-}
-
-func (e *ErrResponse) Render(_ http.ResponseWriter, r *http.Request) error {
-	render.Status(r, e.HTTPStatusCode)
-	return nil
 }
 
 func main() {
