@@ -7,12 +7,16 @@ import (
 	"net/http"
 )
 
-func Index(w http.ResponseWriter, _ *http.Request) {
+func index(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte("Welcome to the cms from 3crabs!"))
 }
 
-func GetPosts(w http.ResponseWriter, _ *http.Request) {
-	_, _ = w.Write([]byte("hello"))
+func getPosts(w http.ResponseWriter, _ *http.Request) {
+	_, _ = w.Write([]byte("get posts"))
+}
+
+func addPosts(w http.ResponseWriter, _ *http.Request) {
+	_, _ = w.Write([]byte("add posts"))
 }
 
 func main() {
@@ -21,8 +25,12 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Heartbeat("/health"))
 
-	r.Get("/", Index)
-	r.Get("/posts", GetPosts)
+	r.Get("/", index)
+
+	r.Route("/posts", func(r chi.Router) {
+		r.Get("/", getPosts)
+		r.Post("/", addPosts)
+	})
 
 	log.Println("Run server")
 	if err := http.ListenAndServe(":8080", r); err != nil {
